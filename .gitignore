@@ -10,4 +10,4 @@ wheels/
 .venv/
 .env
 .git
-.idea
+.idea/
