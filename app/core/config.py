@@ -25,12 +25,13 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
     REDIS_PASSWORD: str | None = None
 
-    QWEN_API_URL: str = "http://127.0.0.1:2222"
+    QWEN_API_URL: str = "http://127.0.0.1:11434/api"
+    QWEN_MODEL: str = "qwen3:14b"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @model_validator(mode="after")
-    def create_dirs(self) -> Settings:
+    def create_dirs(self):
         self.UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
         self.OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
         return self

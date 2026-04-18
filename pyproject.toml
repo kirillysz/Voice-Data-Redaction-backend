@@ -3,10 +3,14 @@ name = "tulahack2026"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.136.0",
     "httpx>=0.28.0",
+    "nemo>=7.4.2",
+    "nemo-toolkit[asr]>=2.0.0",
+    "ollama>=0.6.1",
+    "omegaconf>=2.3.0",
     "pydantic-settings>=2.13.1",
     "pydub>=0.25.1",
     "python-multipart>=0.0.26",
