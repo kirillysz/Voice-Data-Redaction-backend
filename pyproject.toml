@@ -1,0 +1,15 @@
+[project]
+name = "tulahack2026"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.136.0",
+    "pydantic-settings>=2.13.1",
+    "python-multipart>=0.0.26",
+    "redis>=7.4.0",
+    "rq>=2.8.0",
+    "slowapi>=0.1.9",
+    "uvicorn>=0.44.0",
+]
