@@ -13,9 +13,6 @@ class Settings(BaseSettings):
     UPLOAD_DIR: Path = Path("app/static/uploads")
     OUTPUT_DIR: Path = Path("app/static/output")
 
-    UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
-    OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
-
     ALLOWED_EXTENSIONS: list = [".mp3", ".wav", ".ogg", ".m4a", ".flac", ".webm"]
 
     REDIS_HOST: str = "localhost"
@@ -29,8 +26,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def create_dirs(self) -> Settings:
-        self.UPLOAD_DIR.mkdir(exist_ok=True)
-        self.OUTPUT_DIR.mkdir(exist_ok=True)
+        self.UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
+        self.OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
         return self
 
 settings = Settings()
