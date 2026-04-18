@@ -1,31 +1,55 @@
-import time
+import asyncio
+import logging
+import os
+from pathlib import Path
 
-def process_audio_file(input_path: str, output_path: str):
-    time.sleep(3)
+from app.core.config import settings
+from app.utils.audio import convert_to_wav16k
+from app.utils.asr import transcribe_with_timestamps
+from app.utils.audio_redactor import mute_segments
+
+# Conditional import based on mock setting
+if settings.USE_MOCK_LLM:
+    from app.utils.mock_llm import redact_with_mock as redact_logic
+else:
+    from app.utils.llm import redact_with_llm as redact_logic
+
+logger = logging.getLogger(__name__)
+
+def process_audio_file(input_path: str, output_path: str) -> dict:
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+    stem = Path(input_path).stem
+    wav_path = os.path.join(output_path, f"{stem}_processed.wav")
+
+    logger.info(f"Processing audio: {input_path}")
+    
+    # 1. Prepare audio
+    convert_to_wav16k(input_path, wav_path)
+
+    # 2. Transcription
+    words = transcribe_with_timestamps(wav_path)
+    transcript = " ".join(w.word for w in words)
+
+    # 3. Redaction logic (either mock or real template)
+    llm_result = asyncio.run(redact_logic(transcript, words))
+
+    # 4. Audio muting
+    redacted_wav_path = os.path.join(output_path, "redacted.wav")
+    segments = [(e.start_sec, e.end_sec) for e in llm_result.entities]
+    
+    mute_segments(wav_path, segments, redacted_wav_path)
+
     return {
-        "original_transcript": "Привет меня зовут Иван Иванов, мой телефон 89991234567",
-        "redacted_transcript": "Привет меня зовут [ИМЯ] [ФАМИЛИЯ], мой телефон [ТЕЛЕФОН]",
+        "original_transcript": llm_result.original_transcript,
+        "redacted_transcript": llm_result.redacted_transcript,
         "entities": [
             {
-                "type": "PERSON",
-                "text": "Иван Иванов",
-                "start_char": 20,
-                "end_char": 31,
-                "start_sec": 1.2,
-                "end_sec": 2.4
-            },
-            {
-                "type": "PHONE",
-                "text": "89991234567",
-                "start_char": 45,
-                "end_char": 56,
-                "start_sec": 3.1,
-                "end_sec": 4.0
-            }
+                "type": e.type, "text": e.text,
+                "start_char": e.start_char, "end_char": e.end_char,
+                "start_sec": e.start_sec, "end_sec": e.end_sec
+            } for e in llm_result.entities
         ],
-        "redacted_audio_path": output_path + "/redacted.mp3",
-        "log": [
-            {"type": "PERSON", "text": "Иван Иванов", "replaced_with": "[ИМЯ] [ФАМИЛИЯ]"},
-            {"type": "PHONE", "text": "89991234567", "replaced_with": "[ТЕЛЕФОН]"}
-        ]
+        "words": [{"word": w.word, "start_sec": w.start_sec, "end_sec": w.end_sec} for w in words],
+        "redacted_audio_path": redacted_wav_path,
+        "log": llm_result.log
     }

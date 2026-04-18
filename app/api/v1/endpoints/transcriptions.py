@@ -87,7 +87,7 @@ async def get_redacted_audio(job_id: str):
     if not audio_path or not Path(audio_path).exists():
         raise HTTPException(404, detail="Audio file not found")
 
-    return FileResponse(audio_path, media_type="audio/mpeg")
+    return FileResponse(audio_path, media_type="audio/wav", filename="redacted.wav")
 
 @router.get("/redact/{job_id}/log")
 async def get_redaction_log(job_id: str):

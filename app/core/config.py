@@ -15,6 +15,11 @@ class Settings(BaseSettings):
 
     ALLOWED_EXTENSIONS: list = [".mp3", ".wav", ".ogg", ".m4a", ".flac", ".webm"]
 
+    USE_MOCK_ASR: bool = False
+    ASR_MODEL_NAME: str = "nvidia/parakeet-rnnt-1.1b"
+
+    USE_MOCK_LLM: bool = True
+
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
