@@ -407,6 +407,179 @@ def process_audio_file(input_path: str, output_path: str) -> dict:
 ```
 
 ---
+ 
+### GET /transcriptions/history
+ 
+Получить пагинированную историю всех обработанных файлов, отсортированную от новых к старым.
+ 
+**Query параметры:**
+ 
+| Параметр | Тип | По умолчанию | Описание |
+|----------|-----|--------------|----------|
+| page | int | `1` | Номер страницы (от 1) |
+| page_size | int | `20` | Элементов на странице (макс. 100) |
+| entity_type | string | — | Фильтр по типу ПДн: `PERSON`, `PHONE`, `EMAIL`, `ADDRESS`, `INN`, `SNILS`, `PASPORT` |
+ 
+**Response `200`:**
+ 
+```json
+{
+  "total": 42,
+  "page": 1,
+  "page_size": 20,
+  "pages": 3,
+  "items": [
+    {
+      "job_id": "f00e2ac9-6228-427e-a5a8-077fe9952908",
+      "filename": "interview.wav",
+      "created_at": "2025-04-19T14:32:01.123456+00:00",
+      "duration_sec": 8.3,
+      "total_redacted": 2,
+      "entity_types": ["PERSON", "PHONE"],
+      "status": "done"
+    }
+  ]
+}
+```
+ 
+**Пример — все записи:**
+ 
+```bash
+curl http://localhost:8000/transcriptions/history
+```
+ 
+**Пример — только файлы с номерами телефонов, вторая страница:**
+ 
+```bash
+curl "http://localhost:8000/transcriptions/history?entity_type=PHONE&page=2&page_size=10"
+```
+ 
+---
+ 
+### GET /transcriptions/history/{job_id}
+ 
+Получить одну запись истории по ID джоба.
+ 
+**Path параметры:**
+ 
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| job_id | string (UUID) | ID джоба |
+ 
+**Response `200`:**
+ 
+```json
+{
+  "job_id": "f00e2ac9-6228-427e-a5a8-077fe9952908",
+  "filename": "interview.wav",
+  "created_at": "2025-04-19T14:32:01.123456+00:00",
+  "duration_sec": 8.3,
+  "total_redacted": 2,
+  "entity_types": ["PERSON", "PHONE"],
+  "status": "done"
+}
+```
+ 
+**Errors:**
+ 
+| Код | Причина |
+|-----|---------|
+| 404 | Запись не найдена |
+ 
+**Пример:**
+ 
+```bash
+curl http://localhost:8000/transcriptions/history/f00e2ac9-6228-427e-a5a8-077fe9952908
+```
+ 
+---
+ 
+### DELETE /transcriptions/history/{job_id}
+ 
+Удалить запись из истории. Не затрагивает RQ-джоб и файлы на диске.
+ 
+**Path параметры:**
+ 
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| job_id | string (UUID) | ID джоба |
+ 
+**Response `204 No Content`**
+ 
+**Errors:**
+ 
+| Код | Причина |
+|-----|---------|
+| 404 | Запись не найдена |
+ 
+**Пример:**
+ 
+```bash
+curl -X DELETE http://localhost:8000/transcriptions/history/f00e2ac9-6228-427e-a5a8-077fe9952908
+```
+ 
+---
+ 
+## Схемы данных
+ 
+### PDEntityResponse
+ 
+| Поле | Тип | Описание |
+|------|-----|----------|
+| type | string | Тип ПДн: `PERSON`, `PHONE`, `EMAIL`, `PASSPORT`, `INN`, `SNILS`, `ADDRESS` |
+| text | string | Оригинальный текст сущности |
+| start_char | int | Позиция начала в транскрипте (символы) |
+| end_char | int | Позиция конца в транскрипте (символы) |
+| start_sec | float | Начало во времени аудио (секунды) |
+| end_sec | float | Конец во времени аудио (секунды) |
+ 
+### RedactionResponse
+ 
+| Поле | Тип | Описание |
+|------|-----|----------|
+| status | string | `queued` / `started` / `done` / `failed` |
+| original_transcript | string \| null | Оригинальный транскрипт |
+| redacted_transcript | string \| null | Транскрипт с заменёнными ПДн |
+| entities | PDEntityResponse[] | Список найденных сущностей |
+| duration_sec | float \| null | Длительность аудио в секундах |
+| redacted_audio_url | string \| null | Путь к редактированному аудио |
+| log | dict[] | Лог замен |
+ 
+### HistoryEntry
+ 
+| Поле | Тип | Описание |
+|------|-----|----------|
+| job_id | string | Уникальный идентификатор джоба |
+| filename | string | Оригинальное имя загруженного файла |
+| created_at | string | Дата и время завершения в формате ISO-8601 UTC |
+| duration_sec | float | Длительность аудио в секундах |
+| total_redacted | int | Суммарное количество найденных ПДн |
+| entity_types | string[] | Уникальные типы ПДн, обнаруженные в файле |
+| status | string | `done` / `failed` |
+ 
+---
+ 
+## Жизненный цикл джоба
+ 
+```
+created → queued → started → done ──► history entry saved
+                           ↘ failed
+```
+ 
+| Статус | Описание |
+|--------|----------|
+| created | Файл принят, джоб поставлен в очередь |
+| queued | Ожидает свободного воркера |
+| started | Воркер обрабатывает |
+| done | Успешно завершён, результат доступен, запись добавлена в историю |
+| failed | Ошибка при обработке, текст ошибки в поле `error` |
+ 
+> **Хранение истории:** записи хранятся в Redis 90 дней и автоматически удаляются. Для ручного удаления использовать
+`DELETE /transcriptions/history/{job_id}`.
+ 
+---
+
+---
 
 ## Структура проекта
 
