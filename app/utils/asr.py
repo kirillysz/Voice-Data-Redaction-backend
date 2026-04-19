@@ -38,9 +38,6 @@ def get_model(model_name: str):
     model = nemo_asr.models.EncDecRNNTBPEModel.restore_from(restore_path=settings.LOCAL_ASR_MODEL_PATH)
     model.eval()
 
-    if torch.cuda.is_available():
-        model = model.cuda()
-
     decoding_cfg = model.cfg.decoding
     with open_dict(decoding_cfg):
         decoding_cfg.preserve_alignments = True
@@ -78,6 +75,7 @@ def transcribe_with_timestamps(wav_path: str) -> list[WordTimestamp]:
         ]
 
     model = get_model(settings.ASR_MODEL_NAME)
+    model = model.cpu()
     frame_shift = get_frame_shift(model)
 
     hypotheses = model.transcribe([wav_path], return_hypotheses=True, batch_size=1)
