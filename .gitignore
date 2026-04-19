@@ -5,11 +5,10 @@ build/
 dist/
 wheels/
 *.egg-info
+*.nemo
 
 # Virtual environments
 .venv/
 .env
 .git
 .idea/
-app/static/models/
-!app/static/models/stt_ru.nemo

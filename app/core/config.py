@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     def create_dirs(self):
         self.UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
         self.OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
+        
         return self
 
 settings = Settings()
