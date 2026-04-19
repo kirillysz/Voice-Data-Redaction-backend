@@ -6,6 +6,7 @@ dist/
 wheels/
 *.egg-info
 *.nemo
+*.rdb
 
 # Virtual environments
 .venv/
