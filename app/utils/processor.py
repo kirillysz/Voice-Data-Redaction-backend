@@ -16,6 +16,19 @@ else:
 
 logger = logging.getLogger(__name__)
 
+
+def _get_wav_duration(wav_path: str) -> float:
+    try:
+        import wave
+        with wave.open(wav_path, "rb") as wf:
+            frames = wf.getnframes()
+            rate = wf.getframerate()
+            return round(frames / float(rate), 3) if rate else 0.0
+    except Exception as exc:  # pragma: no cover
+        logger.warning("Could not read WAV duration: %s", exc)
+        return 0.0
+
+
 def process_audio_file(input_path: str, output_path: str) -> dict:
     Path(output_path).mkdir(parents=True, exist_ok=True)
     stem = Path(input_path).stem
@@ -25,14 +38,16 @@ def process_audio_file(input_path: str, output_path: str) -> dict:
 
     convert_to_wav16k(input_path, wav_path)
 
+    duration_sec = _get_wav_duration(wav_path)
+
     words = transcribe_with_timestamps(wav_path)
     transcript = " ".join(w.word for w in words)
-  
+
     llm_result = asyncio.run(redact_logic(transcript, words))
- 
+
     redacted_wav_path = os.path.join(output_path, "redacted.wav")
     segments = [(e.start_sec, e.end_sec) for e in llm_result.entities]
-    
+
     mute_segments(wav_path, segments, redacted_wav_path)
 
     return {
@@ -42,10 +57,11 @@ def process_audio_file(input_path: str, output_path: str) -> dict:
             {
                 "type": e.type, "text": e.text,
                 "start_char": e.start_char, "end_char": e.end_char,
-                "start_sec": e.start_sec, "end_sec": e.end_sec
+                "start_sec": e.start_sec, "end_sec": e.end_sec,
             } for e in llm_result.entities
         ],
         "words": [{"word": w.word, "start_sec": w.start_sec, "end_sec": w.end_sec} for w in words],
         "redacted_audio_path": redacted_wav_path,
-        "log": llm_result.log
+        "duration_sec": duration_sec,
+        "log": llm_result.log,
     }
