@@ -12,3 +12,4 @@ wheels/
 .git
 .idea/
 app/static/models/
+!app/static/models/stt_ru.nemo
