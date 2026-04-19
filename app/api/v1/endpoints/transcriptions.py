@@ -121,18 +121,6 @@ async def list_history(
         description="Filter by PII type: PERSON, PHONE, EMAIL, ADDRESS, INN, SNILS, PASPORT",
     ),
 ):
-    """
-    Return paginated processing history, newest first.
- 
-    Each item contains:
-    - **job_id** – unique identifier
-    - **filename** – original uploaded file name
-    - **created_at** – ISO-8601 UTC timestamp
-    - **duration_sec** – audio duration in seconds
-    - **total_redacted** – total number of redacted entities
-    - **entity_types** – list of unique PII-type tags found (e.g. ["PERSON", "PHONE"])
-    - **status** – `done` or `failed`
-    """
     result = get_history(
         page=page,
         page_size=page_size,
@@ -143,7 +131,6 @@ async def list_history(
  
 @router.get("/history/{job_id}")
 async def get_history_item(job_id: str):
-    """Return the history record for a single job."""
     entry = get_history_entry(job_id)
     if not entry:
         raise HTTPException(404, detail="History entry not found")
@@ -152,7 +139,6 @@ async def get_history_item(job_id: str):
  
 @router.delete("/history/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_history_item(job_id: str):
-    """Delete a history record (does NOT delete the RQ job or files)."""
     deleted = delete_history_entry(job_id)
     if not deleted:
         raise HTTPException(404, detail="History entry not found")
