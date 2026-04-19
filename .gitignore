@@ -11,3 +11,4 @@ wheels/
 .env
 .git
 .idea/
+.static/models/

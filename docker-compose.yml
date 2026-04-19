@@ -5,6 +5,8 @@ services:
       - "6379:6379"
     env_file:
       - .env
+    environment:
+        - REDIS_PASSWORD=${REDIS_PASSWORD}
     command: redis-server --requirepass ${REDIS_PASSWORD}
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]

@@ -32,6 +32,7 @@ def process_audio_file(input_path: str, output_path: str) -> dict:
 
     # 3. Redaction logic (either mock or real template)
     llm_result = asyncio.run(redact_logic(transcript, words))
+    print(llm_result)
 
     # 4. Audio muting
     redacted_wav_path = os.path.join(output_path, "redacted.wav")

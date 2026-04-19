@@ -1,5 +1,16 @@
 import logging
 from dataclasses import dataclass
+from app.core.config import settings
+
+import numpy as np
+if not hasattr(np, 'sctypes'):
+    np.sctypes = {
+        'int': [np.int8, np.int16, np.int32, np.int64],
+        'uint': [np.uint8, np.uint16, np.uint32, np.uint64],
+        'float': [np.float16, np.float32, np.float64],
+        'complex': [np.complex64, np.complex128],
+        'others': [bool, object, bytes, str, np.void],
+    }
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +33,8 @@ def get_model(model_name: str):
     except ImportError:
         raise RuntimeError("nemo_toolkit not found. Install with: pip install 'nemo_toolkit[asr]'")
 
-    model = nemo_asr.models.EncDecRNNTBPEModel.from_pretrained(model_name=model_name)
+    # model = nemo_asr.models.EncDecRNNTBPEModel.from_pretrained(model_name=model_name)
+    model = nemo_asr.models.EncDecRNNTBPEModel.restore_from(restore_path=settings.LOCAL_ASR_MODEL_PATH)
     model.eval()
 
     decoding_cfg = model.cfg.decoding
@@ -62,16 +74,20 @@ def transcribe_with_timestamps(wav_path: str) -> list[WordTimestamp]:
         ]
 
     model = get_model(settings.ASR_MODEL_NAME)
+    model = model.cpu()
     frame_shift = get_frame_shift(model)
 
-    hypotheses = model.transcribe([wav_path], timestamps=True)
-    if not hypotheses:
-        return []
-    
+    hypotheses = model.transcribe([wav_path], return_hypotheses=True)
     hyp = hypotheses[0]
+    if isinstance(hyp, list):
+        hyp = hyp[0]
+
+    if hyp is None:
+        return []
+
     word_timestamps = []
 
-    for entry in hyp.timestamp.get("word", []):
+    for entry in hyp.timestep.get("word", []):
         word_timestamps.append(
             WordTimestamp(
                 word=entry["word"],
