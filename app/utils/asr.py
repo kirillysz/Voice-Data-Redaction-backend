@@ -23,6 +23,7 @@ class WordTimestamp:
 _asr_model = None
 
 def get_model(model_name: str):
+    import torch
     global _asr_model
     if _asr_model is not None:
         return _asr_model
@@ -37,13 +38,16 @@ def get_model(model_name: str):
     model = nemo_asr.models.EncDecRNNTBPEModel.restore_from(restore_path=settings.LOCAL_ASR_MODEL_PATH)
     model.eval()
 
+    if torch.cuda.is_available():
+        model = model.cuda()
+
     decoding_cfg = model.cfg.decoding
     with open_dict(decoding_cfg):
         decoding_cfg.preserve_alignments = True
         decoding_cfg.compute_timestamps = True
     model.change_decoding_strategy(decoding_cfg)
 
-    _asr_model = model
+    _asr_model = model  
     return _asr_model
 
 def get_frame_shift(model) -> float:
@@ -74,10 +78,9 @@ def transcribe_with_timestamps(wav_path: str) -> list[WordTimestamp]:
         ]
 
     model = get_model(settings.ASR_MODEL_NAME)
-    model = model.cpu()
     frame_shift = get_frame_shift(model)
 
-    hypotheses = model.transcribe([wav_path], return_hypotheses=True)
+    hypotheses = model.transcribe([wav_path], return_hypotheses=True, batch_size=1)
     hyp = hypotheses[0]
     if isinstance(hyp, list):
         hyp = hyp[0]

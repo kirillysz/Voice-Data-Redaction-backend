@@ -22,19 +22,14 @@ def process_audio_file(input_path: str, output_path: str) -> dict:
     wav_path = os.path.join(output_path, f"{stem}_processed.wav")
 
     logger.info(f"Processing audio: {input_path}")
-    
-    # 1. Prepare audio
+
     convert_to_wav16k(input_path, wav_path)
 
-    # 2. Transcription
     words = transcribe_with_timestamps(wav_path)
     transcript = " ".join(w.word for w in words)
-
-    # 3. Redaction logic (either mock or real template)
+  
     llm_result = asyncio.run(redact_logic(transcript, words))
-    print(llm_result)
-
-    # 4. Audio muting
+ 
     redacted_wav_path = os.path.join(output_path, "redacted.wav")
     segments = [(e.start_sec, e.end_sec) for e in llm_result.entities]
     
